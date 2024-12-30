@@ -34,6 +34,9 @@ class Snake {
   }
 
   loadMemeImages() {
+    // Primero cargamos la imagen de la cabeza de la serpiente
+    const snakeHeadUrl =
+      "https://img.freepik.com/vector-premium/arte-cabeza-serpiente-venenosa_43623-476.jpg";
     const memeUrls = [
       "https://i.imgur.com/6amXGTM.jpeg",
       "https://i.imgur.com/8nLFCVP.png",
@@ -41,6 +44,11 @@ class Snake {
       "https://i.imgur.com/v3kmplx.jpeg",
       "https://i.imgur.com/l9ykNfF.gif",
     ];
+
+    // Cargar la cabeza de la serpiente primero
+    const headImg = new Image();
+    headImg.src = snakeHeadUrl;
+    this.snakeHeadImage = headImg;
 
     let loadedImages = 0;
     memeUrls.forEach((url) => {
@@ -60,22 +68,17 @@ class Snake {
   }
 
   reset() {
-    // Initialize with fixed meme indices
-    this.segments = [
-      { x: 10, y: 10, memeIndex: 0 },
-      { x: 9, y: 10, memeIndex: 1 },
-      { x: 8, y: 10, memeIndex: 2 },
-    ];
+    // Start with just one segment (the snake head)
+    this.segments = [{ x: 10, y: 10, isHead: true }];
 
     this.direction = { x: 1, y: 0 };
     this.nextDirection = { x: 1, y: 0 };
     this.food = this.generateFood();
     this.score = 0;
-    this.speed = this.baseSpeed; // Resetear la velocidad al inicio
+    this.speed = this.baseSpeed;
     this.moveAccumulator = 0;
     this.lastPositions = this.segments.map((s) => ({ ...s }));
     document.getElementById("scoreValue").textContent = this.score;
-    this.nextMemeIndex = 3; // Index for the next segment to be added
     this.foodAnimationTime = 0;
     this.foodEatenEffect = null;
   }
@@ -114,14 +117,14 @@ class Snake {
     // Touch controls
     let touchStartX = 0;
     let touchStartY = 0;
-    const minSwipeDistance = 30; // Distancia mínima para considerar un swipe
+    const minSwipeDistance = 30; // Minimum distance to consider a swipe
 
     this.canvas.addEventListener(
       "touchstart",
       (e) => {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
-        e.preventDefault(); // Prevenir scroll
+        e.preventDefault(); // Prevent scroll
       },
       { passive: false }
     );
@@ -179,11 +182,20 @@ class Snake {
 
   generateFood() {
     let food;
+    let memeIndex;
     do {
       food = {
         x: Math.floor(Math.random() * this.gridSize),
         y: Math.floor(Math.random() * this.gridSize),
+        memeIndex: Math.floor(Math.random() * this.memeImages.length),
       };
+      // Asegurarse de que el memeIndex sea diferente al último segmento
+      if (this.segments.length > 0) {
+        const lastSegment = this.segments[this.segments.length - 1];
+        if (food.memeIndex === lastSegment.memeIndex) {
+          food.memeIndex = (food.memeIndex + 1) % this.memeImages.length;
+        }
+      }
     } while (
       this.segments.some(
         (segment) => segment.x === food.x && segment.y === food.y
@@ -203,12 +215,13 @@ class Snake {
     return false;
   }
 
-  startFoodEatenAnimation(x, y) {
+  startFoodEatenAnimation(x, y, memeIndex) {
     this.foodEatenEffect = {
       x: x,
       y: y,
+      memeIndex: memeIndex,
       time: 0,
-      duration: 500, // 500ms de duración
+      duration: 500,
     };
   }
 
@@ -220,10 +233,8 @@ class Snake {
   update(deltaTime) {
     if (this.gameOver) return;
 
-    // Actualizar animación de comida
     this.foodAnimationTime += deltaTime;
 
-    // Actualizar efecto de comida comida si existe
     if (this.foodEatenEffect) {
       this.foodEatenEffect.time += deltaTime;
       if (this.foodEatenEffect.time >= this.foodEatenEffect.duration) {
@@ -247,24 +258,33 @@ class Snake {
         y:
           (this.segments[0].y + this.direction.y + this.gridSize) %
           this.gridSize,
-        memeIndex: this.segments[0].memeIndex,
+        isHead: true,
       };
 
       if (newHead.x === this.food.x && newHead.y === this.food.y) {
-        this.startFoodEatenAnimation(this.food.x, this.food.y);
+        this.startFoodEatenAnimation(
+          this.food.x,
+          this.food.y,
+          this.food.memeIndex
+        );
+
+        // Get the last segment's position
+        const lastSegment = this.segments[this.segments.length - 1];
+
+        // Add new segment at the end with the food's meme
         const newSegment = {
-          x: newHead.x,
-          y: newHead.y,
-          memeIndex: this.nextMemeIndex,
+          x: lastSegment.x,
+          y: lastSegment.y,
+          isHead: false,
+          memeIndex: this.food.memeIndex,
         };
 
-        this.nextMemeIndex = (this.nextMemeIndex + 1) % this.memeImages.length;
-        this.segments.unshift(newSegment);
-        this.lastPositions.unshift({ ...newSegment });
+        this.segments.push(newSegment);
+        this.lastPositions.push({ ...lastSegment });
 
         this.food = this.generateFood();
         this.score++;
-        this.increaseSpeed(); // Aumentar la velocidad al comer
+        this.increaseSpeed();
         document.getElementById("scoreValue").textContent = this.score;
       } else {
         const oldSegments = [...this.segments];
@@ -273,6 +293,7 @@ class Snake {
           this.segments[i] = {
             x: oldSegments[i - 1].x,
             y: oldSegments[i - 1].y,
+            isHead: false,
             memeIndex: oldSegments[i].memeIndex,
           };
         }
@@ -308,28 +329,58 @@ class Snake {
   draw() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw food with subtle pulsing animation
-    this.ctx.fillStyle = "#e74c3c";
-    const pulseScale = 1 + Math.sin(this.foodAnimationTime * 0.01) * 0.05;
-    const baseFoodSize = this.cellSize * 0.8;
-    const foodSize = baseFoodSize * pulseScale;
-    const foodX = (this.food.x + 0.5) * this.cellSize - foodSize / 2;
-    const foodY = (this.food.y + 0.5) * this.cellSize - foodSize / 2;
-    this.drawRoundedRect(foodX, foodY, foodSize, foodSize, foodSize * 0.3);
+    // Draw food as meme image with pulsing animation
+    if (this.imagesLoaded && this.memeImages[this.food.memeIndex]) {
+      const pulseScale = 1 + Math.sin(this.foodAnimationTime * 0.01) * 0.05;
+      const baseFoodSize = this.cellSize * 0.8;
+      const foodSize = baseFoodSize * pulseScale;
+      const foodX = (this.food.x + 0.5) * this.cellSize - foodSize / 2;
+      const foodY = (this.food.y + 0.5) * this.cellSize - foodSize / 2;
+
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.roundedRect(foodX, foodY, foodSize, foodSize, foodSize * 0.3);
+      this.ctx.clip();
+      this.ctx.drawImage(
+        this.memeImages[this.food.memeIndex],
+        foodX,
+        foodY,
+        foodSize,
+        foodSize
+      );
+      this.ctx.restore();
+    }
 
     // Draw food eaten effect if active
     if (this.foodEatenEffect) {
       const progress =
         this.foodEatenEffect.time / this.foodEatenEffect.duration;
+      const baseFoodSize = this.cellSize * 0.8;
       const size = baseFoodSize * (1 + progress);
       const opacity = 1 - progress;
 
-      this.ctx.save();
-      this.ctx.fillStyle = `rgba(231, 76, 60, ${opacity})`;
-      const effectX = (this.foodEatenEffect.x + 0.5) * this.cellSize - size / 2;
-      const effectY = (this.foodEatenEffect.y + 0.5) * this.cellSize - size / 2;
-      this.drawRoundedRect(effectX, effectY, size, size, size * 0.3);
-      this.ctx.restore();
+      if (
+        this.imagesLoaded &&
+        this.memeImages[this.foodEatenEffect.memeIndex]
+      ) {
+        this.ctx.save();
+        this.ctx.globalAlpha = opacity;
+        const effectX =
+          (this.foodEatenEffect.x + 0.5) * this.cellSize - size / 2;
+        const effectY =
+          (this.foodEatenEffect.y + 0.5) * this.cellSize - size / 2;
+        this.ctx.beginPath();
+        this.roundedRect(effectX, effectY, size, size, size * 0.3);
+        this.ctx.clip();
+        this.ctx.drawImage(
+          this.memeImages[this.foodEatenEffect.memeIndex],
+          effectX,
+          effectY,
+          size,
+          size
+        );
+        this.ctx.restore();
+      }
     }
 
     const moveInterval = 1 / this.speed;
@@ -363,11 +414,25 @@ class Snake {
       const x = drawX * this.cellSize;
       const y = drawY * this.cellSize;
 
-      if (this.imagesLoaded && this.memeImages[segment.memeIndex]) {
-        this.ctx.save();
-        this.ctx.beginPath();
-        this.roundedRect(x, y, this.cellSize, this.cellSize, 4);
-        this.ctx.clip();
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.roundedRect(x, y, this.cellSize, this.cellSize, 4);
+      this.ctx.clip();
+
+      if (segment.isHead && this.snakeHeadImage) {
+        // Draw snake head without rotation
+        this.ctx.drawImage(
+          this.snakeHeadImage,
+          x,
+          y,
+          this.cellSize,
+          this.cellSize
+        );
+      } else if (
+        !segment.isHead &&
+        this.imagesLoaded &&
+        this.memeImages[segment.memeIndex]
+      ) {
         this.ctx.drawImage(
           this.memeImages[segment.memeIndex],
           x,
@@ -375,11 +440,9 @@ class Snake {
           this.cellSize,
           this.cellSize
         );
-        this.ctx.restore();
-      } else {
-        this.ctx.fillStyle = i === 0 ? "#27ae60" : "#2ecc71";
-        this.drawRoundedRect(x, y, this.cellSize, this.cellSize, 4);
       }
+
+      this.ctx.restore();
     }
 
     // Draw Game Over screen

@@ -1,15 +1,65 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Snake Game</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <!-- Primary Meta Tags -->
+    <title>Meme Snake Game - A Fun Twist on the Classic Snake</title>
+    <meta
+      name="title"
+      content="Meme Snake Game - A Fun Twist on the Classic Snake"
+    />
+    <meta
+      name="description"
+      content="Play the classic Snake game with a modern twist! Each segment of the snake is a different meme. Features smooth movement, touch controls, and increasing difficulty. Play on any device!"
+    />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Meme Snake Game - A Fun Twist on the Classic Snake"
+    />
+    <meta
+      property="og:description"
+      content="Play the classic Snake game with a modern twist! Each segment of the snake is a different meme. Features smooth movement, touch controls, and increasing difficulty."
+    />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta
+      property="twitter:title"
+      content="Meme Snake Game - A Fun Twist on the Classic Snake"
+    />
+    <meta
+      property="twitter:description"
+      content="Play the classic Snake game with a modern twist! Each segment of the snake is a different meme. Features smooth movement, touch controls, and increasing difficulty."
+    />
+
+    <!-- Additional Meta Tags -->
+    <meta
+      name="keywords"
+      content="snake game, meme game, browser game, HTML5 game, javascript game, mobile game, arcade game"
+    />
+    <meta name="author" content="Snake Game Developer" />
+    <meta name="theme-color" content="#2c3e50" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+    <!-- Prevent automatic phone number detection -->
+    <meta name="format-detection" content="telephone=no" />
+
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="game-container">
       <canvas id="gameCanvas"></canvas>
-      <div class="score">Puntuación: <span id="scoreValue">0</span></div>
+      <div class="score">Score: <span id="scoreValue">0</span></div>
     </div>
     <script src="game.js"></script>
   </body>

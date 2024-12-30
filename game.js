@@ -221,7 +221,7 @@ class Snake {
       y: y,
       memeIndex: memeIndex,
       time: 0,
-      duration: 500,
+      duration: 300,
     };
   }
 
